@@ -5,16 +5,15 @@
 	<title>index</title>
 </head>
 <body>
+	xxxx
 <script src="../dist/import-html-entry.js"></script>
 <script>
-
-	importHTML('./template.html').then(res => {
-		console.log(res.template);
-		res.execScripts().then(exports => {
-			console.log(exports);
-		});
-	});
-
+	importHTML.default('./template.html').then(res => {
+  console.log(res.template);
+  res.execScripts().then(exports => {
+    console.log(exports);
+  });
+});
 </script>
 </body>
 </html>
