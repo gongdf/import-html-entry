@@ -35,3 +35,8 @@ importHTML('./subApp/index.html')
         })
 });
 ```
+npm i
+npx webpack
+npm i -g http-server
+http-server
+服务访问
