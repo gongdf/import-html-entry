@@ -8,12 +8,23 @@
 	xxxx
 <script src="../dist/import-html-entry.js"></script>
 <script>
-	importHTML.default('./template.html').then(res => {
-  console.log(res.template);
-  res.execScripts().then(exports => {
-    console.log(exports);
-  });
-});
+// 	importHTML.default('./template.html').then(res => {
+//   console.log(res.template);
+// 	res.getExternalStyleSheets().then(exports => {
+// 		console.log(exports)
+// 	})
+// 	res.getExternalScripts().then(exports => {
+// 		console.log(exports)
+// 	})
+//   res.execScripts().then(exports => {
+//     console.log(exports);
+//   });
+// });
+importHTML.importEntry({
+	scripts: ['./a.js'],
+}).then(res => {
+	res.getExternalScripts()
+})
 </script>
 </body>
 </html>

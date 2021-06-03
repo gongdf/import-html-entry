@@ -40,3 +40,7 @@ npx webpack
 npm i -g http-server
 http-server
 服务访问
+
+异步加载 - 先定义获取资源的函数，需要调用时触发函数再去获取 -》 requestIdleCallback空闲时下载，防止阻塞主线程
+整体思路：
+    fetch html文件（importHTML） =》 解析html文件（processTpl） =》  css全部放style中，js纪录到scripts =》 fetch js code => eval执行js code

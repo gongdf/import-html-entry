@@ -29,6 +29,7 @@ function shouldSkipProperty(global, p) {
 // safari unpredictably lists some new globals first or second in object order
 let firstGlobalProp, secondGlobalProp, lastGlobalProp;
 
+// 获取global上的最后一个属性
 export function getGlobalProp(global) {
 	let cnt = 0;
 	let lastProp;
@@ -105,6 +106,7 @@ export function isModuleScriptSupported() {
 }
 
 // RIC and shim for browsers setTimeout() without it
+// todo一波
 export const requestIdleCallback =
 	window.requestIdleCallback ||
 	function requestIdleCallback(cb) {
@@ -119,6 +121,7 @@ export const requestIdleCallback =
 		}, 1);
 	};
 
+	// 对fetch返回结果的统一处理
 export function readResAsString(response, autoDetectCharset) {
 	// 未启用自动检测
 	if (!autoDetectCharset) {

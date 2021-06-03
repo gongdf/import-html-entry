@@ -54,8 +54,9 @@ function getExecutableScript(scriptSrc, scriptText, proxy, strictGlobal) {
 
 	// 通过这种方式获取全局 window，因为 script 也是在全局作用域下运行的，所以我们通过 window.proxy 绑定时也必须确保绑定到全局 window 上
 	// 否则在嵌套场景下， window.proxy 设置的是内层应用的 window，而代码其实是在全局作用域运行的，会导致闭包里的 window.proxy 取的是最外层的微应用的 proxy
-	const globalWindow = (0, eval)('window');
-	globalWindow.proxy = proxy;
+	// 嵌套场景 - 微应用里面嵌套微应用
+	const globalWindow = (0, eval)('window'); // 保障 globalWindow 是最外层全局对象, eval 的间接调用，字符串的代码永远在全局作用域下调用，相当于 var a = eval;a('window')
+	globalWindow.proxy = proxy; // 本应用的window
 	// TODO 通过 strictGlobal 方式切换 with 闭包，待 with 方式坑趟平后再合并
 	return strictGlobal
 		? `;(function(window, self, globalThis){with(window){;${scriptText}\n${sourceUrl}}}).bind(window.proxy)(window.proxy, window.proxy, window.proxy);`
@@ -63,6 +64,8 @@ function getExecutableScript(scriptSrc, scriptText, proxy, strictGlobal) {
 }
 
 // for prefetch
+// 将外联css文件加载，把加载的css代码放入style标签中
+// 获取css源代码
 export function getExternalStyleSheets(styles, fetch = defaultFetch) {
 	return Promise.all(styles.map(styleLink => {
 			if (isInlineCode(styleLink)) {
@@ -79,6 +82,7 @@ export function getExternalStyleSheets(styles, fetch = defaultFetch) {
 }
 
 // for prefetch
+// 获取js源代码
 export function getExternalScripts(scripts, fetch = defaultFetch, errorCallback = () => {
 }) {
 
@@ -109,6 +113,7 @@ export function getExternalScripts(scripts, fetch = defaultFetch, errorCallback 
 				}
 			} else {
 				// use idle time to load async script
+				// 加载时注意对主线程的影响，利用空闲时加载
 				const { src, async } = script;
 				if (async) {
 					return {
@@ -158,16 +163,16 @@ export function execScripts(entry, scripts, proxy = window, opts = {}) {
 		.then(scriptsText => {
 
 			const geval = (scriptSrc, inlineScript) => {
-				const rawCode = beforeExec(inlineScript, scriptSrc) || inlineScript;
+				const rawCode = beforeExec(inlineScript, scriptSrc) || inlineScript; // beforeExec hook可以在执行前进行代码更改
 				const code = getExecutableScript(scriptSrc, rawCode, proxy, strictGlobal);
 
-				(0, eval)(code);
+				(0, eval)(code); // 通过eval方法执行字符串代码
 
 				afterExec(inlineScript, scriptSrc);
 			};
 
 			function exec(scriptSrc, inlineScript, resolve) {
-
+				// todo 去学习下
 				const markName = `Evaluating script ${scriptSrc}`;
 				const measureName = `Evaluating Time Consuming: ${scriptSrc}`;
 
@@ -181,6 +186,7 @@ export function execScripts(entry, scripts, proxy = window, opts = {}) {
 					try {
 						// bind window.proxy to change `this` reference in script
 						geval(scriptSrc, inlineScript);
+						// 返回window的最后一个属性干嘛用？
 						const exports = proxy[getGlobalProp(strictGlobal ? proxy : window)] || {};
 						resolve(exports);
 					} catch (e) {
@@ -199,6 +205,7 @@ export function execScripts(entry, scripts, proxy = window, opts = {}) {
 						}
 					} else {
 						// external script marked with async
+						// 用到时调用then时才去加载
 						inlineScript.async && inlineScript?.content
 							.then(downloadedScriptText => geval(inlineScript.src, downloadedScriptText))
 							.catch(e => {
@@ -266,7 +273,7 @@ export default function importHTML(url, opts = {}) {
 			const { template, scripts, entry, styles } = processTpl(getTemplate(html), assetPublicPath);
 
 			return getEmbedHTML(template, styles, { fetch }).then(embedHTML => ({
-				template: embedHTML,
+				template: embedHTML, // 最终的模板 - css全部放style中，js注释掉，不用模板加载时的默认自动加载
 				assetPublicPath,
 				getExternalScripts: () => getExternalScripts(scripts, fetch),
 				getExternalStyleSheets: () => getExternalStyleSheets(styles, fetch),
@@ -306,6 +313,7 @@ export function importEntry(entry, opts = {}) {
 	if (Array.isArray(entry.scripts) || Array.isArray(entry.styles)) {
 
 		const { scripts = [], styles = [], html = '' } = entry;
+		// reduceRight很少用
 		const getHTMLWithStylePlaceholder = tpl => styles.reduceRight((html, styleSrc) => `${genLinkReplaceSymbol(styleSrc)}${html}`, tpl);
 		const getHTMLWithScriptPlaceholder = tpl => scripts.reduce((html, scriptSrc) => `${html}${genScriptReplaceSymbol(scriptSrc)}`, tpl);
 

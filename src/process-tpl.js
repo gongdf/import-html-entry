@@ -55,6 +55,15 @@ export const genModuleScriptReplaceSymbol = (scriptSrc, moduleSupport) => `<!-- 
  * @stripStyles whether to strip the css links
  * @returns {{template: void | string | *, scripts: *[], entry: *}}
  */
+
+/* 
+	从模板中
+		取出link标签的css链接存放在styles中
+		取出script标签的js链接存放在scripts中
+		取出script标签的内联js代码，连同script标签放到scripts中
+		将要加载css，js的地方用注释替换掉 - 不让页面自动加载，自行来控制什么时候加载
+		entry是干嘛用的？
+*/
 export default function processTpl(tpl, baseURI) {
 
 	let scripts = [];
@@ -95,7 +104,7 @@ export default function processTpl(tpl, baseURI) {
 					return genLinkReplaceSymbol(newHref);
 				}
 			}
-
+			// rel="stylesheet"时就不可能是preload/prefetch, preload/prefetch也是写在rel上的，所有上面直接return了
 			const preloadOrPrefetchType = match.match(LINK_PRELOAD_OR_PREFETCH_REGEX) && match.match(LINK_HREF_REGEX) && !match.match(LINK_AS_FONT);
 			if (preloadOrPrefetchType) {
 				const [, , linkHref] = match.match(LINK_HREF_REGEX);
@@ -104,6 +113,7 @@ export default function processTpl(tpl, baseURI) {
 
 			return match;
 		})
+		// style内的样式不做处理
 		.replace(STYLE_TAG_REGEX, match => {
 			if (STYLE_IGNORE_REGEX.test(match)) {
 				return genIgnoreAssetReplaceSymbol('style file');
@@ -111,6 +121,7 @@ export default function processTpl(tpl, baseURI) {
 			return match;
 		})
 		.replace(ALL_SCRIPT_REGEX, (match, scriptTag) => {
+			// scriptTag为script的开始标签
 			const scriptIgnore = scriptTag.match(SCRIPT_IGNORE_REGEX);
 			const moduleScriptIgnore =
 				(moduleSupport && !!scriptTag.match(SCRIPT_NO_MODULE_REGEX)) ||
@@ -118,12 +129,13 @@ export default function processTpl(tpl, baseURI) {
 			// in order to keep the exec order of all javascripts
 
 			const matchedScriptTypeMatch = scriptTag.match(SCRIPT_TYPE_REGEX);
-			const matchedScriptType = matchedScriptTypeMatch && matchedScriptTypeMatch[2];
+			const matchedScriptType = matchedScriptTypeMatch && matchedScriptTypeMatch[2]; // type属性的值
 			if (!isValidJavaScriptType(matchedScriptType)) {
 				return match;
 			}
 
 			// if it is a external script
+			// src加载的js
 			if (SCRIPT_TAG_REGEX.test(match) && scriptTag.match(SCRIPT_SRC_REGEX)) {
 				/*
 				collect scripts and replace the ref
@@ -170,13 +182,14 @@ export default function processTpl(tpl, baseURI) {
 				}
 
 				// if it is an inline script
-				const code = getInlineCode(match);
+				// 内联js
+				const code = getInlineCode(match); // 去掉script标签的js代码
 
 				// remove script blocks when all of these lines are comments.
 				const isPureCommentBlock = code.split(/[\r\n]+/).every(line => !line.trim() || line.trim().startsWith('//'));
 
 				if (!isPureCommentBlock) {
-					scripts.push(match);
+					scripts.push(match); // scripts存储的包含<script>标签
 				}
 
 				return inlineScriptReplaceSymbol;
