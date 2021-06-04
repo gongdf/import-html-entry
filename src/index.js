@@ -186,7 +186,7 @@ export function execScripts(entry, scripts, proxy = window, opts = {}) {
 					try {
 						// bind window.proxy to change `this` reference in script
 						geval(scriptSrc, inlineScript);
-						// 返回window的最后一个属性干嘛用？
+						// 返回window的最后一个属性干嘛用？ - 导出微应用生命钩子函数
 						const exports = proxy[getGlobalProp(strictGlobal ? proxy : window)] || {};
 						resolve(exports);
 					} catch (e) {
